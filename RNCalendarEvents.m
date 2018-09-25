@@ -37,7 +37,7 @@ static NSString *const _attendees    = @"attendees";
             lroundf(r * 255),
             lroundf(g * 255),
             lroundf(b * 255)];
-}   
+}
 
 @synthesize bridge = _bridge;
 
@@ -770,9 +770,16 @@ RCT_EXPORT_METHOD(removeEvent:(NSString *)eventId options:(NSDictionary *)option
     NSDate *exceptionDate = [RCTConvert NSDate:options[@"exceptionDate"]];
 
     if (exceptionDate) {
-        NSPredicate *predicate = [self.eventStore predicateForEventsWithStartDate:exceptionDate
-                                                                          endDate:[NSDate distantFuture]
-                                                                        calendars:nil];
+      NSCalendar *cal = [NSCalendar currentCalendar];
+      NSDate *endDate = [cal dateByAddingUnit:NSCalendarUnitDay
+                                     value:1
+                                    toDate:exceptionDate
+                                   options:0];
+
+      NSPredicate *predicate = [self.eventStore predicateForEventsWithStartDate:exceptionDate
+                                                                        endDate:endDate
+                                                                      calendars:nil];
+
         __weak RNCalendarEvents *weakSelf = self;
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             RNCalendarEvents *strongSelf = weakSelf;
