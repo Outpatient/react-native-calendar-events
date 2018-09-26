@@ -698,7 +698,7 @@ RCT_EXPORT_METHOD(fetchAllEvents:(NSDate *)startDate endDate:(NSDate *)endDate c
                                                                     calendars:eventCalendars];
 
     __weak RNCalendarEvents *weakSelf = self;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
         RNCalendarEvents *strongSelf = weakSelf;
         NSArray *calendarEvents = [[strongSelf.eventStore eventsMatchingPredicate:predicate] sortedArrayUsingSelector:@selector(compareStartDateWithEvent:)];
         if (calendarEvents) {
@@ -719,7 +719,7 @@ RCT_EXPORT_METHOD(findEventById:(NSString *)eventId resolver:(RCTPromiseResolveB
     }
 
     __weak RNCalendarEvents *weakSelf = self;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
         RNCalendarEvents *strongSelf = weakSelf;
 
         EKEvent *calendarEvent = (EKEvent *)[self.eventStore calendarItemWithIdentifier:eventId];
@@ -746,7 +746,7 @@ RCT_EXPORT_METHOD(saveEvent:(NSString *)title
     [details setValue:title forKey:_title];
 
     __weak RNCalendarEvents *weakSelf = self;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
         RNCalendarEvents *strongSelf = weakSelf;
 
         NSDictionary *response = [strongSelf buildAndSaveEvent:details options:options];
@@ -781,7 +781,7 @@ RCT_EXPORT_METHOD(removeEvent:(NSString *)eventId options:(NSDictionary *)option
                                                                       calendars:nil];
 
         __weak RNCalendarEvents *weakSelf = self;
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
             RNCalendarEvents *strongSelf = weakSelf;
             NSArray *calendarEvents = [strongSelf.eventStore eventsMatchingPredicate:predicate];
             EKEvent *eventInstance;
@@ -813,19 +813,30 @@ RCT_EXPORT_METHOD(removeEvent:(NSString *)eventId options:(NSDictionary *)option
             return resolve(@(success));
         });
     } else {
-        EKEvent *calendarEvent = (EKEvent *)[self.eventStore calendarItemWithIdentifier:eventId];
-        NSError *error = nil;
-        EKSpan eventSpan = EKSpanThisEvent;
+      __weak RNCalendarEvents *weakSelf = self;
+      dispatch_async(dispatch_get_main_queue(), ^{
+          RNCalendarEvents *strongSelf = weakSelf;
 
-        if (futureEvents) {
-            eventSpan = EKSpanFutureEvents;
-        }
+          NSLog(@"**** removeEvent %@", eventId);
+          EKEvent *calendarEvent = (EKEvent *)[self.eventStore calendarItemWithIdentifier:eventId];
+          NSError *error = nil;
+          EKSpan eventSpan = EKSpanThisEvent;
 
-        BOOL success = [self.eventStore removeEvent:calendarEvent span:eventSpan commit:YES error:&error];
-        if (error) {
-            return reject(@"error", [error.userInfo valueForKey:@"NSLocalizedDescription"], nil);
-        }
-        return resolve(@(success));
+          if (futureEvents) {
+              eventSpan = EKSpanFutureEvents;
+          }
+
+          NSLog(@"**** removeEvent found calendarEvent %@", calendarEvent);
+
+          BOOL success = [self.eventStore removeEvent:calendarEvent span:eventSpan commit:YES error:&error];
+          NSLog(@"**** removeEvent done");
+          if (error) {
+              NSLog(@"**** removeEvent rejecting %@", eventId);
+              return reject(@"error", [error.userInfo valueForKey:@"NSLocalizedDescription"], nil);
+          }
+          NSLog(@"**** removeEvent resolving %@", eventId);
+          return resolve(@(success));
+      });
     }
 }
 
