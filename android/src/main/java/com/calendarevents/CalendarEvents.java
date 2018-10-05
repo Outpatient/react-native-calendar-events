@@ -298,7 +298,7 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
         Uri uri = uriBuilder.build();
 
         String selection = "(Instances._ID = " + eventID + ")";
-            
+
         cursor = cr.query(uri, new String[]{
                 CalendarContract.Instances._ID,
                 CalendarContract.Instances.TITLE,
@@ -381,7 +381,7 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
         }
 
         if (details.hasKey("recurrence")) {
-            String rule = createRecurrenceRule(details.getString("recurrence"), null, null, null);
+            String rule = createRecurrenceRule(details.getString("recurrence"), null, null, null, null);
             if (rule != null) {
                 eventValues.put(CalendarContract.Events.RRULE, rule);
             }
@@ -396,6 +396,7 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
                 Integer interval = null;
                 Integer occurrence = null;
                 String endDate = null;
+                String weekStart = "MO";
 
                 if (recurrenceRule.hasKey("interval")) {
                     interval = recurrenceRule.getInt("interval");
@@ -407,6 +408,10 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
 
                 if (recurrenceRule.hasKey("occurrence")) {
                     occurrence = recurrenceRule.getInt("occurrence");
+                }
+
+                if (recurrenceRule.hasKey("weekStart")) {
+                    weekStart = recurrenceRule.getString("weekStart");
                 }
 
                 if (recurrenceRule.hasKey("endDate")) {
@@ -422,7 +427,7 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
                     }
                 }
 
-                String rule = createRecurrenceRule(frequency, interval, endDate, occurrence);
+                String rule = createRecurrenceRule(frequency, interval, endDate, occurrence, weekStart);
                 if (duration != null) {
                     eventValues.put(CalendarContract.Events.DURATION, duration);
                 }
@@ -789,7 +794,7 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
     //endregion
 
     //region Recurrence Rule
-    private String createRecurrenceRule(String recurrence, Integer interval, String endDate, Integer occurrence) {
+    private String createRecurrenceRule(String recurrence, Integer interval, String endDate, Integer occurrence, String weekStart) {
         String rrule;
 
         if (recurrence.equals("daily")) {
@@ -812,6 +817,10 @@ public class CalendarEvents extends ReactContextBaseJavaModule {
             rrule += ";UNTIL=" + endDate;
         } else if (occurrence != null) {
             rrule += ";COUNT=" + occurrence;
+        }
+
+        if (weekStart != null) {
+            rrule += ";WKST=" + weekStart;
         }
 
         return rrule;
