@@ -23,6 +23,7 @@ static NSString *const _occurrenceDate = @"occurrenceDate";
 static NSString *const _isDetached = @"isDetached";
 static NSString *const _availability = @"availability";
 static NSString *const _attendees    = @"attendees";
+static NSString *const _timeZone    = @"timeZone";
 
 @implementation RNCalendarEvents
 
@@ -88,6 +89,7 @@ RCT_EXPORT_MODULE()
     NSString *recurrence = [RCTConvert NSString:details[_recurrence]];
     NSDictionary *recurrenceRule = [RCTConvert NSDictionary:details[_recurrenceRule]];
     NSString *availability = [RCTConvert NSString:details[_availability]];
+    NSString *timeZone = [RCTConvert NSString:details[_timeZone]];
 
     if (eventId) {
         calendarEvent = (EKEvent *)[self.eventStore calendarItemWithIdentifier:eventId];
@@ -104,6 +106,10 @@ RCT_EXPORT_MODULE()
                 calendarEvent.calendar = calendar;
             }
         }
+    }
+
+    if (timeZone) {
+      calendarEvent.timeZone = [NSTimeZone timeZoneWithName:timeZone];
     }
 
     if (title) {
@@ -296,12 +302,12 @@ RCT_EXPORT_MODULE()
         weekDay = [EKRecurrenceDayOfWeek dayOfWeek:7];
     } else if ([day isEqualToString:@"SU"]) {
         weekDay = [EKRecurrenceDayOfWeek dayOfWeek:1];
-    } 
+    }
 
     NSLog(@"%s", "dayOfTheWeek");
     NSLog(@"%@", weekDay);
     return weekDay;
-} 
+}
 
 -(NSMutableArray *) createRecurrenceDaysOfWeek: (NSArray *) days
 {
@@ -313,10 +319,10 @@ RCT_EXPORT_MODULE()
         for (NSString *day in days) {
             EKRecurrenceDayOfWeek *weekDay = [self dayOfTheWeekMatchingName: day];
             [daysOfTheWeek addObject:weekDay];
-            
+
         }
     }
-    
+
     return daysOfTheWeek;
 }
 
@@ -464,6 +470,7 @@ RCT_EXPORT_MODULE()
                                                  @"endDate": @""
                                                  },
                                          _availability: @"",
+                                         _timeZone: @""
                                          };
 
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
@@ -505,6 +512,10 @@ RCT_EXPORT_MODULE()
 
     if (event.location) {
         [formedCalendarEvent setValue:event.location forKey:_location];
+    }
+
+    if (event.timeZone) {
+        [formedCalendarEvent setValue:event.timeZone forKey:_timeZone];
     }
 
     if (event.attendees) {
@@ -872,6 +883,7 @@ RCT_EXPORT_METHOD(removeEvent:(NSString *)eventId options:(NSDictionary *)option
         NSPredicate *predicate = [self.eventStore predicateForEventsWithStartDate:exceptionDate
                                                                           endDate:[NSDate distantFuture]
                                                                         calendars:nil];
+
         __weak RNCalendarEvents *weakSelf = self;
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             RNCalendarEvents *strongSelf = weakSelf;
