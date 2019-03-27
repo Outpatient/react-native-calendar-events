@@ -23,6 +23,8 @@ static NSString *const _occurrenceDate = @"occurrenceDate";
 static NSString *const _isDetached = @"isDetached";
 static NSString *const _availability = @"availability";
 static NSString *const _attendees    = @"attendees";
+static NSString *const _timeZone    = @"timeZone";
+
 dispatch_queue_t serialQueue;
 
 @implementation RNCalendarEvents
@@ -90,6 +92,7 @@ RCT_EXPORT_MODULE()
     NSString *recurrence = [RCTConvert NSString:details[_recurrence]];
     NSDictionary *recurrenceRule = [RCTConvert NSDictionary:details[_recurrenceRule]];
     NSString *availability = [RCTConvert NSString:details[_availability]];
+    NSString *timeZone = [RCTConvert NSString:details[_timeZone]];
 
     if (eventId) {
         calendarEvent = (EKEvent *)[self.eventStore calendarItemWithIdentifier:eventId];
@@ -106,6 +109,10 @@ RCT_EXPORT_MODULE()
                 calendarEvent.calendar = calendar;
             }
         }
+    }
+
+    if (timeZone) {
+      calendarEvent.timeZone = [NSTimeZone timeZoneWithName:timeZone];
     }
 
     if (title) {
@@ -174,12 +181,12 @@ RCT_EXPORT_MODULE()
         NSDictionary *geo = [locationOptions valueForKey:@"coords"];
         CLLocation *geoLocation = [[CLLocation alloc] initWithLatitude:[[geo valueForKey:@"latitude"] doubleValue]
                                                              longitude:[[geo valueForKey:@"longitude"] doubleValue]];
-        
+
         calendarEvent.structuredLocation = [EKStructuredLocation locationWithTitle:[locationOptions valueForKey:@"title"]];
         calendarEvent.structuredLocation.geoLocation = geoLocation;
         calendarEvent.structuredLocation.radius = [[locationOptions valueForKey:@"radius"] doubleValue];
     }
-    
+
     return [self saveEvent:calendarEvent options:options];
 }
 
@@ -477,6 +484,7 @@ RCT_EXPORT_MODULE()
                                                  @"endDate": @""
                                                  },
                                          _availability: @"",
+                                         _timeZone: @""
                                          };
 
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
@@ -518,6 +526,10 @@ RCT_EXPORT_MODULE()
 
     if (event.location) {
         [formedCalendarEvent setValue:event.location forKey:_location];
+    }
+
+    if (event.timeZone) {
+        [formedCalendarEvent setValue:event.timeZone forKey:_timeZone];
     }
 
     if (event.attendees) {
@@ -654,7 +666,7 @@ RCT_EXPORT_MODULE()
     }
 
     [formedCalendarEvent setValue:[self availabilityStringMatchingConstant:event.availability] forKey:_availability];
-    
+
     if (event.structuredLocation) {
         NSMutableDictionary *structuredLocation = [[NSMutableDictionary alloc] initWithCapacity:3];
         [structuredLocation addEntriesFromDictionary: @{
@@ -948,7 +960,7 @@ RCT_EXPORT_METHOD(removeEvent:(NSString *)eventId options:(NSDictionary *)option
       __weak RNCalendarEvents *weakSelf = self;
       dispatch_async(serialQueue, ^{
           RNCalendarEvents *strongSelf = weakSelf;
-          
+
           EKEvent *calendarEvent = (EKEvent *)[self.eventStore calendarItemWithIdentifier:eventId];
           NSError *error = nil;
           EKSpan eventSpan = EKSpanThisEvent;
